@@ -1,0 +1,35 @@
+import { registerRoute } from 'workbox-routing';
+import { CacheFirst } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { precacheAndRoute } from 'workbox-precaching';
+
+// Precache static assets
+precacheAndRoute(self.__WB_MANIFEST);
+
+/**
+ * Strategi CacheFirst untuk file model AI (.bin dan .json).
+ * Penting untuk mendukung ketersediaan offline (Advanced grade).
+ */
+registerRoute(
+  ({ url }) => url.pathname.endsWith('.bin') || url.pathname.endsWith('.json'),
+  new CacheFirst({
+    cacheName: 'ai-models-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+      }),
+    ],
+  })
+);
+
+// Fallback for general navigation
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match('/index.html');
+      })
+    );
+  }
+});
