@@ -189,7 +189,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>&copy; 2026 Root Fact App - Advanced AI Submission</p>
+        <p>&copy; 2026 Root Facts AI</p>
       </footer>
     </div>
   );

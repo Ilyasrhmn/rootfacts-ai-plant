@@ -1,15 +1,12 @@
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-webgpu';
 import '@tensorflow/tfjs-backend-webgl';
+import { MODEL_CONFIG, validateResponse } from '../utils/config.js';
 
 export class DetectionService {
   constructor() {
     this.model = null;
     this.labels = [];
-    this.config = {
-      modelUrl: '/model/model.json',
-      metadataUrl: '/model/metadata.json'
-    };
   }
 
   /**
@@ -34,12 +31,17 @@ export class DetectionService {
         console.log('Backend: WEBGL');
       }
 
-      const metadataResponse = await fetch(this.config.metadataUrl);
+      // Validasi metadata sebelum parsing JSON
+      const metadataResponse = await fetch(MODEL_CONFIG.detectionMetadata);
+      await validateResponse(metadataResponse);
       const metadata = await metadataResponse.json();
       this.labels = metadata.labels;
 
       let lastProgress = 0;
-      this.model = await tf.loadLayersModel(this.config.modelUrl, {
+      
+      // Catatan: tf.loadLayersModel melakukan fetch internal. 
+      // Kita asumsikan jika metadata aman, model.json juga aman karena di direktori yang sama.
+      this.model = await tf.loadLayersModel(MODEL_CONFIG.detectionModel, {
         onProgress: (fraction) => {
           const progress = Math.floor(fraction * 100);
           if (onProgress && progress > lastProgress) {
@@ -50,7 +52,7 @@ export class DetectionService {
       });
       if (onProgress) onProgress(100);
     } catch (error) {
-      console.error('Gagal memuat model deteksi:', error);
+      console.error('Gagal memuat model deteksi:', error.message);
       throw error;
     }
   }

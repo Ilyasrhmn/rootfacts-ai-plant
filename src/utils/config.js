@@ -15,7 +15,28 @@ export const TONE_CONFIG = {
   defaultTone: 'normal'
 };
 
+export const MODEL_CONFIG = {
+  detectionModel: '/model/model.json',
+  detectionMetadata: '/model/metadata.json',
+  transformersModel: 'Xenova/flan-t5-small'
+};
+
 export const isValidDetection = (result) => {
   const { detectionConfidenceThreshold } = APP_CONFIG;
   return result && result.isValid && result.confidence >= detectionConfidenceThreshold;
+};
+
+/**
+ * Validasi response fetch untuk memastikan bukan HTML (404 redirect)
+ * Mencegah error "Unexpected token <" yang membingungkan.
+ */
+export const validateResponse = async (response) => {
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('text/html')) {
+    throw new Error(`Model File Not Found (404): Expected JSON/Binary but got HTML. Check path: ${response.url}`);
+  }
+  if (!response.ok) {
+    throw new Error(`Network response was not ok: ${response.statusText}`);
+  }
+  return response;
 };

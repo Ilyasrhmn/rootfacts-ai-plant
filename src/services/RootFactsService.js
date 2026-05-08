@@ -1,9 +1,11 @@
 import { pipeline, env } from '@huggingface/transformers';
-import { TONE_CONFIG } from '../utils/config.js';
+import { TONE_CONFIG, MODEL_CONFIG } from '../utils/config.js';
 
-// Konfigurasi Environment Transformers.js untuk kebersihan log dan model lokal
+// Konfigurasi Environment Transformers.js
 env.backends.onnx.logLevel = 'error';
 env.allowLocalModels = true;
+env.allowRemoteModels = true;
+env.localModelPath = '/'; 
 
 export class RootFactsService {
   constructor() {
@@ -34,7 +36,7 @@ export class RootFactsService {
     };
 
     try {
-      this.generator = await pipeline('text2text-generation', 'Xenova/flan-t5-small', {
+      this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
         dtype: 'q4',
         device: 'webgpu',
         progress_callback: progressCallback
@@ -43,12 +45,17 @@ export class RootFactsService {
       if (onProgress) onProgress(100);
     } catch (error) {
       console.warn('Transformers.js WebGPU gagal, menggunakan CPU:', error);
-      this.generator = await pipeline('text2text-generation', 'Xenova/flan-t5-small', {
-        dtype: 'q4',
-        progress_callback: progressCallback
-      });
-      this.isModelLoaded = true;
-      if (onProgress) onProgress(100);
+      try {
+        this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
+          dtype: 'q4',
+          progress_callback: progressCallback
+        });
+        this.isModelLoaded = true;
+        if (onProgress) onProgress(100);
+      } catch (innerError) {
+        console.error('Gagal memuat model generator:', innerError);
+        throw innerError;
+      }
     }
   }
 
@@ -58,7 +65,6 @@ export class RootFactsService {
 
   /**
    * Generasi fun fact menggunakan Persona Dinamis (kriteria Advanced).
-   * Prompt diatur dalam Bahasa Inggris sesuai limitasi model.
    */
   async generateFacts(vegetableName) {
     if (!this.generator) throw new Error('Generator belum siap');

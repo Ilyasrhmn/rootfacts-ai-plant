@@ -9,14 +9,29 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 /**
  * Strategi CacheFirst untuk file model AI (.bin dan .json).
- * Penting untuk mendukung ketersediaan offline (Advanced grade).
- * Ditambahkan RangeRequestsPlugin untuk menangani file besar (Partial Content).
+ * Ditambahkan validasi Content-Type untuk mencegah caching index.html saat 404.
  */
 registerRoute(
   ({ url }) => url.pathname.endsWith('.bin') || url.pathname.endsWith('.json'),
   new CacheFirst({
     cacheName: 'ai-models-cache',
     plugins: [
+      {
+        /**
+         * Verifikasi response sebelum disimpan di cache.
+         * Jika response adalah HTML (hasil redirect 404 Netlify), jangan di-cache.
+         */
+        cacheWillUpdate: async ({ response }) => {
+          if (response) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+              console.warn('SW: Mencegah caching HTML untuk file model AI:', response.url);
+              return null;
+            }
+          }
+          return response;
+        },
+      },
       new ExpirationPlugin({
         maxEntries: 50,
         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
