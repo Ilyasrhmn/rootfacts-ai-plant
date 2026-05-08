@@ -6,7 +6,6 @@ import { useAppState } from './hooks/useAppState';
 import { DetectionService } from './services/DetectionService';
 import { RootFactsService } from './services/RootFactsService';
 import { CameraService } from './services/CameraService';
-import { APP_CONFIG } from './utils/config';
 
 function App() {
   const { state, actions } = useAppState();
@@ -15,7 +14,9 @@ function App() {
 
   const animationFrameRef = useRef(null);
   const lastPredictionTimeRef = useRef(0);
-  const fpsLimit = 500; // Pembatasan 2 FPS untuk efisiensi CPU/GPU
+  const consecutiveHitsRef = useRef({ count: 0, lastLabel: null });
+  const isWarmingUpRef = useRef(false);
+  const fpsLimit = 300; // Pembatasan sekitar 3 FPS untuk keseimbangan akurasi dan performa
 
   // Inisialisasi layanan AI saat komponen dimuat
   useEffect(() => {
@@ -49,24 +50,41 @@ function App() {
     };
   }, [actions]);
 
-  // Loop deteksi dengan batasan FPS
+  // Loop deteksi dengan batasan FPS dan Logika Filter
   const runDetection = useCallback(async () => {
-    if (!state.isRunning) return;
+    if (!state.isRunning || isWarmingUpRef.current) return;
 
     const now = performance.now();
     if (now - lastPredictionTimeRef.current >= fpsLimit) {
-      if (state.services.camera && state.services.camera.isReady()) {
-        const result = await state.services.detector.predict(state.services.camera.video);
+      const camera = state.services.camera;
+      
+      // Strict Check: Video harus ready (readyState 4)
+      if (camera && camera.isReady()) {
+        const result = await state.services.detector.predict(camera.video);
 
-        if (result && result.score > (APP_CONFIG.detectionConfidenceThreshold / 100)) {
-          actions.setDetectionResult(result);
-          actions.setAppState('result');
+        // Filter 1: Confidence Threshold (Min 0.85)
+        if (result && result.score >= 0.85) {
+          // Filter 2: Consecutive Hit (Sesuai Syarat: 3x hit berturut-turut)
+          if (result.className === consecutiveHitsRef.current.lastLabel) {
+            consecutiveHitsRef.current.count += 1;
+          } else {
+            consecutiveHitsRef.current.count = 1;
+            consecutiveHitsRef.current.lastLabel = result.className;
+          }
 
-          state.services.camera.stopCamera();
-          actions.setRunning(false);
+          if (consecutiveHitsRef.current.count >= 3) {
+            actions.setDetectionResult(result);
+            actions.setAppState('result');
 
-          handleGenerateFact(result.className);
-          return;
+            state.services.camera.stopCamera();
+            actions.setRunning(false);
+
+            handleGenerateFact(result.className);
+            return;
+          }
+        } else {
+          // Reset jika frame ini tidak memenuhi threshold
+          consecutiveHitsRef.current = { count: 0, lastLabel: null };
         }
       }
       lastPredictionTimeRef.current = now;
@@ -77,9 +95,17 @@ function App() {
 
   useEffect(() => {
     if (state.isRunning) {
-      runDetection();
+      // Warm-up delay: 1000ms sebelum prediksi pertama dimulai
+      isWarmingUpRef.current = true;
+      const warmUpTimeout = setTimeout(() => {
+        isWarmingUpRef.current = false;
+        runDetection();
+      }, 1000);
+      
+      return () => clearTimeout(warmUpTimeout);
     } else {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      consecutiveHitsRef.current = { count: 0, lastLabel: null };
     }
   }, [state.isRunning, runDetection]);
 
@@ -129,7 +155,6 @@ function App() {
     }
   };
 
-  // 3. Copy to Clipboard Functionality
   const handleCopyFact = () => {
     if (state.funFactData && state.funFactData !== 'error') {
       navigator.clipboard.writeText(state.funFactData)

@@ -1,1 +1,1 @@
-URL Deployment: <Tulis URL Netlify di sini>
+URL Deployment: https://rootfacts-ai-plant.netlify.app/

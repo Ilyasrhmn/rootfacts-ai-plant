@@ -38,11 +38,17 @@ export class DetectionService {
       const metadata = await metadataResponse.json();
       this.labels = metadata.labels;
 
+      let lastProgress = 0;
       this.model = await tf.loadLayersModel(this.config.modelUrl, {
         onProgress: (fraction) => {
-          if (onProgress) onProgress(Math.floor(fraction * 100));
+          const progress = Math.floor(fraction * 100);
+          if (onProgress && progress > lastProgress) {
+            lastProgress = progress;
+            onProgress(progress);
+          }
         }
       });
+      if (onProgress) onProgress(100);
     } catch (error) {
       console.error('Gagal memuat model deteksi:', error);
       throw error;

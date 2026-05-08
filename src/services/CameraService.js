@@ -35,7 +35,18 @@ export class CameraService {
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (this.video) {
         this.video.srcObject = this.stream;
-        await this.video.play();
+        
+        // Penting untuk iOS: Pastikan playsinline, muted, dan autoplay diatur
+        this.video.setAttribute('playsinline', '');
+        this.video.setAttribute('muted', '');
+        this.video.setAttribute('autoplay', '');
+
+        // Tunggu video benar-benar siap
+        await new Promise((resolve) => {
+          this.video.onloadedmetadata = () => {
+            this.video.play().then(resolve);
+          };
+        });
       }
       return this.stream;
     } catch (error) {
