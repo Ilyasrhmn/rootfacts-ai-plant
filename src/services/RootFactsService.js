@@ -3,11 +3,18 @@ import { TONE_CONFIG, MODEL_CONFIG } from '../utils/config.js';
 
 // Konfigurasi Environment Transformers.js
 env.backends.onnx.logLevel = 'error';
-env.allowLocalModels = true;
+env.allowLocalModels = false;
 env.allowRemoteModels = true;
-env.localModelPath = '/'; 
+env.localModelPath = '/';
+
+/**
+ * CRITICAL: Batasi numThreads ke 1 untuk menghindari deadlocks 
+ * dan 'NetworkError' saat interupsi Service Worker pada perangkat low-end.
+ */
+env.backends.onnx.wasm.numThreads = 1;
 
 export class RootFactsService {
+
   constructor() {
     this.generator = null;
     this.isModelLoaded = false;
