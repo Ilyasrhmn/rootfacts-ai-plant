@@ -76,14 +76,27 @@ export class RootFactsService {
   async generateFacts(vegetableName) {
     if (!this.generator) throw new Error('Generator belum siap');
 
-    const prompt = `Write a short, ${this.currentTone} fact about the vegetable ${vegetableName}.`;
+    // Mapping Tone dari UI ke deskriptor
+    const toneMap = {
+      'normal': 'educational and factual',
+      'funny': 'funny and witty',
+      'lucu': 'funny and witty',
+      'casual': 'relaxed and informal',
+      'santai': 'relaxed and informal',
+      'professional': 'formal and scientific',
+      'profesional': 'formal and scientific'
+    };
+
+    const safeTone = toneMap[this.currentTone.toLowerCase()] || 'educational and factual';
+
+    const prompt = `Question: Tell me one short, ${safeTone} fact about the plant called ${vegetableName}. \nAnswer:`;
 
     const result = await this.generator(prompt, {
-      max_new_tokens: 50,
-      temperature: 0.2,
+      max_new_tokens: 40,
+      temperature: 0.1,
       do_sample: true,
       top_p: 0.9,
-      repetition_penalty: 1.5
+      repetition_penalty: 2.0
     });
 
     return result[0].generated_text.trim();
