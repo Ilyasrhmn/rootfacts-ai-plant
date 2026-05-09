@@ -76,19 +76,17 @@ export class RootFactsService {
   async generateFacts(vegetableName) {
     if (!this.generator) throw new Error('Generator belum siap');
 
-    const prompt = `Context: You are a ${this.currentTone} expert on nutrition and plants. 
-    Task: Tell me one unique fun fact about ${vegetableName} in a ${this.currentTone} way. 
-    Language: English. 
-    Fact:`;
+    const prompt = `Write a short, ${this.currentTone} fact about the vegetable ${vegetableName}.`;
 
     const result = await this.generator(prompt, {
-      max_new_tokens: 150,
-      temperature: 0.7,
+      max_new_tokens: 50,
+      temperature: 0.2,
       do_sample: true,
       top_p: 0.9,
+      repetition_penalty: 1.5
     });
 
-    return result[0].generated_text;
+    return result[0].generated_text.trim();
   }
 
   isReady() {
