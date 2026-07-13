@@ -20,8 +20,6 @@ export class RootFactsService {
     this.currentTone = TONE_CONFIG.defaultTone;
   }
 
-  // TODO [Basic] Muat model dan inisialisasi pipeline text2text-generation
-  // TODO [Advance] Implementasikan strategi Backend Adaptive
   async loadModel(onProgress) {
     const progressMap = new Map();
     let lastTotalProgress = 0;
@@ -67,14 +65,10 @@ export class RootFactsService {
     }
   }
 
-  // TODO [Advance] Konfigurasi tone fakta yang dihasilkan
   setTone(tone) {
     this.currentTone = tone;
   }
 
-  // TODO [Basic] Lakukan prediksi pada elemen gambar yang diberikan dan kembalikan hasilnya
-  // TODO [Skilled] Konfigurasikan parameter generasi berdasarkan kebutuhan
-  // TODO [Advance] Implemenasikan parameter tone untuk mengatur nada fakta yang dihasilkan
   async generateFacts(vegetableName) {
     if (!this.generator) throw new Error('Generator belum siap');
 
@@ -164,15 +158,57 @@ export class RootFactsService {
         'santai':      'Soybean is basically the plant world\'s best source of complete protein that can turn into almost any food product.',
         'profesional': 'Glycine max seeds contain complete protein with all essential amino acids, isoflavones, and polyunsaturated fatty acids.',
       },
+      'beetroot': {
+        'normal':      'Beetroot is a root vegetable rich in nitrates, folate, and betalain pigments that support healthy blood flow.',
+        'lucu':        'Beetroot stains everything it touches bright pink, including your hands, your cutting board, and your dinner plans!',
+        'santai':      'Beetroot is basically the earthy purple-red root that is sweet, healthy, and great in salads or juices.',
+        'profesional': 'Beta vulgaris taproots contain betalain pigments, dietary nitrates, and folate with documented vasodilatory effects.',
+      },
+      'paprika': {
+        'normal':      'Paprika comes from dried bell peppers and is rich in vitamin A, vitamin E, and antioxidant carotenoids.',
+        'lucu':        'Paprika is basically a bell pepper that decided to retire and become a spice instead!',
+        'santai':      'Paprika is basically the smoky-sweet spice that adds color and flavor to almost any dish.',
+        'profesional': 'Capsicum annuum-derived paprika contains capsanthin, carotenoid pigments, and tocopherol antioxidant compounds.',
+      },
+      'cabbage': {
+        'normal':      'Cabbage is a cruciferous vegetable high in vitamin K, vitamin C, and fiber that supports digestion.',
+        'lucu':        'Cabbage is basically lettuce that went to the gym and came back in tight layered armor!',
+        'santai':      'Cabbage is basically the crunchy leafy veggie that is cheap, healthy, and great in almost any dish.',
+        'profesional': 'Brassica oleracea var. capitata contains glucosinolates, vitamin K, and soluble fiber compounds.',
+      },
+      'cauliflower': {
+        'normal':      'Cauliflower is a cruciferous vegetable low in calories but rich in vitamin C, fiber, and antioxidants.',
+        'lucu':        'Cauliflower is basically broccoli that bleached itself white and now pretends to be rice or pizza crust!',
+        'santai':      'Cauliflower is basically the versatile white veggie that can turn into rice, pizza, or steak these days.',
+        'profesional': 'Brassica oleracea var. botrytis contains glucosinolates, ascorbic acid, and dietary fiber compounds.',
+      },
+      'chilli': {
+        'normal':      'Chilli is a spicy fruit-vegetable rich in capsaicin, vitamin C, and antioxidants that boost metabolism.',
+        'lucu':        'Chilli is the tiny vegetable that can bring grown adults to tears and regret in a single bite!',
+        'santai':      'Chilli is basically the spicy little kick that makes any dish way more exciting.',
+        'profesional': 'Capsicum frutescens contains capsaicinoid compounds responsible for pungency and thermogenic bioactivity.',
+      },
+      'eggplant': {
+        'normal':      'Eggplant is a nutrient-dense vegetable rich in fiber, antioxidants, and anthocyanin pigments in its skin.',
+        'lucu':        'Eggplant is the vegetable that looks nothing like an egg, yet somehow kept the name forever!',
+        'santai':      'Eggplant is basically the purple, spongy veggie that soaks up flavor in almost any dish.',
+        'profesional': 'Solanum melongena contains nasunin anthocyanin pigments, chlorogenic acid, and dietary fiber.',
+      },
+      'turnip': {
+        'normal':      'Turnip is a root vegetable that is low in calories and a good source of vitamin C and fiber.',
+        'lucu':        'Turnip is basically a potato\'s peppery cousin that nobody talks about at family dinners!',
+        'santai':      'Turnip is basically the mild peppery root that is great roasted, mashed, or tossed in soups.',
+        'profesional': 'Brassica rapa taproots contain glucosinolates, ascorbic acid, and moderate dietary fiber content.',
+      },
     };
 
     const normalized = vegetableName.toLowerCase().trim();
     const tone = this.currentTone.toLowerCase();
 
     const toneKey = (['lucu', 'funny'].includes(tone))            ? 'lucu'
-                  : (['santai', 'casual'].includes(tone))          ? 'santai'
-                  : (['profesional', 'professional'].includes(tone)) ? 'profesional'
-                  : 'normal';
+      : (['santai', 'casual'].includes(tone))          ? 'santai'
+        : (['profesional', 'professional'].includes(tone)) ? 'profesional'
+          : 'normal';
 
     const toneContext = toneContextMap[normalized]?.[toneKey]
       ?? `${vegetableName} is a nutritious vegetable with various health benefits.`;
@@ -182,6 +218,8 @@ export class RootFactsService {
     const result = await this.generator(prompt, {
       max_new_tokens: 60,
       do_sample: false,
+      temperature: 0.7,
+      top_p: 0.9,
       repetition_penalty: 1.8,
     });
 
@@ -194,7 +232,6 @@ export class RootFactsService {
     return text;
   }
 
-  // TODO [Basic] Periksa apakah model sudah dimuat dan siap digunakan
   isReady() {
     return this.isModelLoaded;
   }

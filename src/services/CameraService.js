@@ -3,7 +3,6 @@ export class CameraService {
     this.stream = null;
     this.video = null;
     this.canvas = null;
-    this.fps = 30;
   }
 
   setVideoElement(videoElement) {
@@ -35,7 +34,7 @@ export class CameraService {
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (this.video) {
         this.video.srcObject = this.stream;
-        
+
         // Penting untuk iOS: Pastikan playsinline, muted, dan autoplay diatur
         this.video.setAttribute('playsinline', '');
         this.video.setAttribute('muted', '');
@@ -63,10 +62,6 @@ export class CameraService {
     if (this.video) {
       this.video.srcObject = null;
     }
-  }
-
-  setFPS(fps) {
-    this.fps = fps;
   }
 
   isActive() {

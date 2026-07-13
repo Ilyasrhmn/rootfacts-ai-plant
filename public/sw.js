@@ -13,7 +13,7 @@ const CACHE_NAME = 'ai-models-storage';
  */
 async function modelCacheHandler({ request }) {
   const cache = await caches.open(CACHE_NAME);
-  
+
   // 1. Cek di cache dulu
   const cachedResponse = await cache.match(request);
   if (cachedResponse) {
@@ -30,7 +30,7 @@ async function modelCacheHandler({ request }) {
      * Cache API .put() akan ERROR jika mencoba menyimpan response 206.
      */
     if (
-      networkResponse.status === 200 && 
+      networkResponse.status === 200 &&
       (networkResponse.type === 'basic' || networkResponse.type === 'cors')
     ) {
       // Pastikan bukan HTML (Netlify 404 redirect)
@@ -49,9 +49,9 @@ async function modelCacheHandler({ request }) {
 
 // Register route untuk extensi model AI
 registerRoute(
-  ({ url }) => 
-    url.pathname.endsWith('.bin') || 
-    url.pathname.endsWith('.json') || 
+  ({ url }) =>
+    url.pathname.endsWith('.bin') ||
+    url.pathname.endsWith('.json') ||
     url.pathname.endsWith('.wasm'),
   modelCacheHandler
 );

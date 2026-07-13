@@ -38,8 +38,8 @@ export class DetectionService {
       this.labels = metadata.labels;
 
       let lastProgress = 0;
-      
-      // Catatan: tf.loadLayersModel melakukan fetch internal. 
+
+      // Catatan: tf.loadLayersModel melakukan fetch internal.
       // Kita asumsikan jika metadata aman, model.json juga aman karena di direktori yang sama.
       this.model = await tf.loadLayersModel(MODEL_CONFIG.detectionModel, {
         onProgress: (fraction) => {

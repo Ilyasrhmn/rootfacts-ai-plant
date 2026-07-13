@@ -7,12 +7,13 @@ function CameraSection({
   onToggleCamera,
   onToneChange,
   onCameraTypeChange,
+  onDetectionFpsChange,
   services,
   modelStatus,
   error,
   currentTone
 }) {
-  const [fps, setFps] = useState(30);
+  const [fps, setFps] = useState(3);
   const [cameraType, setCameraType] = useState('default');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -26,12 +27,6 @@ function CameraSection({
     }
   }, [services.camera]);
 
-  useEffect(() => {
-    if (services.camera) {
-      services.camera.setFPS(fps);
-    }
-  }, [fps, services.camera]);
-
   const handleCameraChange = (newCameraType) => {
     setCameraType(newCameraType);
     if (onCameraTypeChange) {
@@ -43,7 +38,11 @@ function CameraSection({
   };
 
   const handleFpsChange = (newFps) => {
-    setFps(Number(newFps));
+    const value = Number(newFps);
+    setFps(value);
+    if (onDetectionFpsChange) {
+      onDetectionFpsChange(value);
+    }
   };
 
   const handleToneChange = (e) => {
@@ -121,13 +120,13 @@ function CameraSection({
           </div>
 
           <div className="setting-item fps-setting">
-            <span id="fps-label">{fps} FPS</span>
+            <span id="fps-label">{fps} FPS Deteksi</span>
             <input
               id="fps-slider"
               type="range"
-              min="15"
-              max="60"
-              step="15"
+              min="1"
+              max="10"
+              step="1"
               value={fps}
               onChange={(e) => handleFpsChange(e.target.value)}
               disabled={isRunning}

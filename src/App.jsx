@@ -16,7 +16,7 @@ function App() {
   const lastPredictionTimeRef = useRef(0);
   const consecutiveHitsRef = useRef({ count: 0, lastLabel: null });
   const isWarmingUpRef = useRef(false);
-  const fpsLimit = 300; // Pembatasan sekitar 3 FPS untuk keseimbangan akurasi dan performa
+  const fpsLimitRef = useRef(300); // ms antar prediksi, dapat dikonfigurasi lewat UI (slider FPS)
 
   // Inisialisasi layanan AI saat komponen dimuat
   useEffect(() => {
@@ -55,9 +55,9 @@ function App() {
     if (!state.isRunning || isWarmingUpRef.current) return;
 
     const now = performance.now();
-    if (now - lastPredictionTimeRef.current >= fpsLimit) {
+    if (now - lastPredictionTimeRef.current >= fpsLimitRef.current) {
       const camera = state.services.camera;
-      
+
       // Strict Check: Video harus ready (readyState 4)
       if (camera && camera.isReady()) {
         const result = await state.services.detector.predict(camera.video);
@@ -101,7 +101,7 @@ function App() {
         isWarmingUpRef.current = false;
         runDetection();
       }, 1000);
-      
+
       return () => clearTimeout(warmUpTimeout);
     } else {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -136,6 +136,10 @@ function App() {
 
   const handleCameraTypeChange = (type) => {
     setCameraType(type);
+  };
+
+  const handleDetectionFpsChange = (fps) => {
+    fpsLimitRef.current = 1000 / fps;
   };
 
   const handleGenerateFact = async (label) => {
@@ -173,6 +177,7 @@ function App() {
           onToggleCamera={handleToggleCamera}
           onToneChange={handleToneChange}
           onCameraTypeChange={handleCameraTypeChange}
+          onDetectionFpsChange={handleDetectionFpsChange}
           services={state.services}
           modelStatus={state.modelStatus}
           error={state.error}
