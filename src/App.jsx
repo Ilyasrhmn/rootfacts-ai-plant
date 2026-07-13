@@ -62,9 +62,15 @@ function App() {
       if (camera && camera.isReady()) {
         const result = await state.services.detector.predict(camera.video);
 
-        // Filter 1: Confidence Threshold (Min 0.85)
-        if (result && result.score >= 0.85) {
-          // Filter 2: Consecutive Hit (Sesuai Syarat: 3x hit berturut-turut)
+        // Tampilkan prediksi live di UI setiap frame, terlepas dari threshold,
+        // supaya label hasil prediksi selalu terlihat selama proses deteksi berjalan.
+        if (result) {
+          actions.setLivePrediction(result);
+        }
+
+        // Filter 1: Confidence Threshold (Min 0.6)
+        if (result && result.score >= 0.6) {
+          // Filter 2: Consecutive Hit (2x hit berturut-turut)
           if (result.className === consecutiveHitsRef.current.lastLabel) {
             consecutiveHitsRef.current.count += 1;
           } else {
@@ -72,7 +78,7 @@ function App() {
             consecutiveHitsRef.current.lastLabel = result.className;
           }
 
-          if (consecutiveHitsRef.current.count >= 3) {
+          if (consecutiveHitsRef.current.count >= 2) {
             actions.setDetectionResult(result);
             actions.setAppState('result');
 
@@ -187,6 +193,7 @@ function App() {
         <InfoPanel
           appState={state.appState}
           detectionResult={state.detectionResult}
+          livePrediction={state.livePrediction}
           funFactData={state.funFactData}
           error={state.error}
           onCopyFact={handleCopyFact}

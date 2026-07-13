@@ -5,6 +5,7 @@ const initialState = {
   isRunning: false,
   modelStatus: 'Memuat Model AI...',
   detectionResult: null,
+  livePrediction: null,
   funFactData: null,
   error: null,
   services: {
@@ -20,6 +21,7 @@ const ActionTypes = {
   SET_RUNNING: 'SET_RUNNING',
   SET_APP_STATE: 'SET_APP_STATE',
   SET_DETECTION_RESULT: 'SET_DETECTION_RESULT',
+  SET_LIVE_PREDICTION: 'SET_LIVE_PREDICTION',
   SET_FUN_FACT_DATA: 'SET_FUN_FACT_DATA',
   SET_ERROR: 'SET_ERROR',
   RESET_RESULTS: 'RESET_RESULTS',
@@ -42,6 +44,9 @@ function appReducer(state, action) {
   case ActionTypes.SET_DETECTION_RESULT:
     return { ...state, detectionResult: action.payload };
 
+  case ActionTypes.SET_LIVE_PREDICTION:
+    return { ...state, livePrediction: action.payload };
+
   case ActionTypes.SET_FUN_FACT_DATA:
     return { ...state, funFactData: action.payload };
 
@@ -53,6 +58,7 @@ function appReducer(state, action) {
       ...state,
       appState: 'idle',
       detectionResult: null,
+      livePrediction: null,
       funFactData: null,
       error: null,
     };
@@ -81,6 +87,9 @@ export function useAppState() {
 
       setDetectionResult: (result) =>
         dispatch({ type: ActionTypes.SET_DETECTION_RESULT, payload: result }),
+
+      setLivePrediction: (result) =>
+        dispatch({ type: ActionTypes.SET_LIVE_PREDICTION, payload: result }),
 
       setFunFactData: (data) =>
         dispatch({ type: ActionTypes.SET_FUN_FACT_DATA, payload: data }),

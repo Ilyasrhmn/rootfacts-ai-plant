@@ -1,6 +1,6 @@
 import { Sparkles, Search, CheckCircle, Lightbulb, Copy, Share2 } from 'lucide-react';
 
-function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }) {
+function InfoPanel({ appState, detectionResult, livePrediction, funFactData, error, onCopyFact }) {
   const isIdle = appState === 'idle';
   const isAnalyzing = appState === 'analyzing';
   const isResult = appState === 'result';
@@ -30,6 +30,11 @@ function InfoPanel({ appState, detectionResult, funFactData, error, onCopyFact }
       </div>
       <h2>Mencari...</h2>
       <p>Sedang mengidentifikasi sayuran Anda</p>
+      {livePrediction && (
+        <p id="live-prediction" style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary, #64748b)' }}>
+          Sepertinya: <strong>{livePrediction.className}</strong> ({Math.round(livePrediction.score * 100)}%)
+        </p>
+      )}
     </div>
   );
 

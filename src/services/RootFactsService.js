@@ -38,30 +38,37 @@ export class RootFactsService {
       }
     };
 
-    // Backend Adaptive: coba WebGPU dulu, fallback ke CPU jika tidak tersedia.
-    try {
-      this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
-        dtype: 'q4',
-        device: 'webgpu',
-        progress_callback: progressCallback
-      });
-      this.currentBackend = 'webgpu';
-      this.isModelLoaded = true;
-      if (onProgress) onProgress(100);
-    } catch (error) {
-      console.warn('Transformers.js WebGPU gagal, menggunakan CPU:', error);
+    // Backend Adaptive: cek navigator.gpu untuk WebGPU, fallback ke WASM jika tidak tersedia.
+    // Catatan: Transformers.js (ONNX Runtime Web) tidak memiliki backend WebGL seperti TensorFlow.js;
+    // execution provider non-GPU yang tersedia adalah 'wasm', sehingga itulah fallback yang benar di sini.
+    if (navigator.gpu) {
       try {
         this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
           dtype: 'q4',
+          device: 'webgpu',
           progress_callback: progressCallback
         });
-        this.currentBackend = 'cpu';
+        this.currentBackend = 'webgpu';
         this.isModelLoaded = true;
         if (onProgress) onProgress(100);
-      } catch (innerError) {
-        console.error('Gagal memuat model generator:', innerError);
-        throw innerError;
+        return;
+      } catch (error) {
+        console.warn('Transformers.js WebGPU gagal, fallback ke WASM:', error);
       }
+    }
+
+    try {
+      this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
+        dtype: 'q4',
+        device: 'wasm',
+        progress_callback: progressCallback
+      });
+      this.currentBackend = 'wasm';
+      this.isModelLoaded = true;
+      if (onProgress) onProgress(100);
+    } catch (innerError) {
+      console.error('Gagal memuat model generator:', innerError);
+      throw innerError;
     }
   }
 
