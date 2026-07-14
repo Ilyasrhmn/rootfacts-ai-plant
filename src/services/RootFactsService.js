@@ -95,8 +95,11 @@ export class RootFactsService {
     // execution provider non-GPU yang tersedia adalah 'wasm', sehingga itulah fallback yang benar di sini.
     if (navigator.gpu) {
       try {
+        // dtype 'q4': satu-satunya kuantisasi yang menghasilkan keluaran koheren di WebGPU
+        // untuk arsitektur T5 ini. q8/'quantized' menghasilkan teks acak (garbage) di WebGPU,
+        // sedangkan q4f16/fp16 gagal dijalankan; keduanya sudah diuji dan dikesampingkan.
         this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
-          dtype: 'q8',
+          dtype: 'q4',
           device: 'webgpu',
           progress_callback: progressCallback
         });
@@ -111,7 +114,7 @@ export class RootFactsService {
 
     try {
       this.generator = await pipeline('text2text-generation', MODEL_CONFIG.transformersModel, {
-        dtype: 'q8',
+        dtype: 'q4',
         device: 'wasm',
         progress_callback: progressCallback
       });
@@ -162,14 +165,16 @@ export class RootFactsService {
     text = text.replace(/^["'\s]+|["'\s]+$/g, '').trim();
 
     // Jaring pengaman: keluaran model hanya dipakai bila (1) cukup panjang, (2) benar-benar
-    // menyebut nama sayuran yang terdeteksi, dan (3) TIDAK menyebut nama sayuran lain
-    // (mis. "Garlic is a well-known tomato") — pola halusinasi yang sama persis dengan
-    // penyebab penolakan sebelumnya. Jika gagal, pakai fakta grounding yang pasti benar.
-    const lowerText = text.toLowerCase();
-    const mentionsCorrectName = lowerText.includes(normalized);
+    // menyebut nama sayuran yang terdeteksi sebagai KATA UTUH, dan (3) TIDAK menyebut nama
+    // sayuran lain (mis. "Garlic is a well-known tomato"). Pemeriksaan dilakukan dengan
+    // tokenisasi menjadi kumpulan kata: "corn" TIDAK akan keliru cocok di dalam "unicorn"
+    // pada keluaran garbage. Jika gagal, pakai fakta grounding yang sudah pasti benar.
+    const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+    const mentionsCorrectName =
+      words.has(normalized) || words.has(`${normalized}s`) || words.has(`${normalized}es`);
     const mentionsOtherVeg = KNOWN_VEG_NAMES.some((v) =>
       v !== normalized && !normalized.includes(v) && !v.includes(normalized) &&
-      new RegExp(`\\b${v}\\b`).test(lowerText));
+      (words.has(v) || words.has(`${v}s`)));
 
     if (text.length < 15 || !mentionsCorrectName || mentionsOtherVeg) {
       text = knowledge;
