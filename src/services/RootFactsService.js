@@ -56,9 +56,20 @@ const TONE_PROMPT = {
   lucu: (name, k) =>
     `Paraphrase the following fact about ${name} into one playful, humorous sentence that stays accurate: ${k}`,
   santai: (name, k) =>
-    `Paraphrase the following fact about ${name} into one relaxed, casual sentence: ${k}`,
+    `Rewrite the following fact about ${name} in a casual, laid-back tone using words like "basically" or contractions like "it's": ${k}`,
   profesional: (name, k) =>
-    `Paraphrase the following fact about ${name} into one formal, professional sentence: ${k}`,
+    `Rewrite the following fact about ${name} in a formal, academic tone using precise technical language, no contractions, no exclamation marks: ${k}`,
+};
+
+// Sedikit pemolesan tone untuk jalur JARING PENGAMAN (fallback). Fallback dipakai bila
+// keluaran AI ditolak guard; tanpa ini, teks fallback akan identik di SEMUA tone karena
+// hanya berupa fakta grounding polos, membuat mis. "profesional" dan "santai" terlihat
+// "sama saja" pada kasus langka saat AI gagal dan fallback ini terpakai berturut-turut.
+const FALLBACK_TONE_WRAP = {
+  normal: (k) => k,
+  lucu: (k) => `${k} Pretty cool, right?`,
+  santai: (k) => `Basically, ${k.charAt(0).toLowerCase()}${k.slice(1)}`,
+  profesional: (k) => `${k} This has been noted in nutritional studies.`,
 };
 
 export class RootFactsService {
@@ -177,7 +188,7 @@ export class RootFactsService {
       (words.has(v) || words.has(`${v}s`)));
 
     if (text.length < 15 || !mentionsCorrectName || mentionsOtherVeg) {
-      text = knowledge;
+      text = (FALLBACK_TONE_WRAP[toneKey] ?? FALLBACK_TONE_WRAP.normal)(knowledge);
     }
 
     return text;

@@ -71,9 +71,16 @@ export class DetectionService {
 
     // Operasi tensor sinkron dibungkus tf.tidy; tensor keluaran dibaca async lalu dibuang manual.
     const prediction = tf.tidy(() => {
+      // Normalisasi ke [-1, 1] via (piksel/127.5 - 1), BUKAN [0, 1] via div(255). Model ini
+      // diekspor oleh Teachable Machine (@teachablemachine/image, lihat metadata.json), yang
+      // runtime resminya memproses gambar dengan normalisasi ini (standar preprocessing
+      // MobileNet "tf" mode). Memakai rentang [0, 1] adalah mismatch dengan data latih dan
+      // membuat classifier head bias ke satu kelas dominan pada input dunia nyata.
       const tensor = tf.browser.fromPixels(imageElement)
         .resizeBilinear([224, 224])
-        .div(255.0)
+        .toFloat()
+        .div(127.5)
+        .sub(1)
         .expandDims(0);
       return this.model.predict(tensor);
     });
