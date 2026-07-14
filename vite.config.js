@@ -28,11 +28,14 @@ export default defineConfig({
           }
         ]
       },
+      // Untuk strategi 'injectManifest', opsi globPatterns HARUS berada di dalam objek
+      // injectManifest (bukan di objek `workbox`, yang hanya berlaku untuk strategi
+      // 'generateSW'). Sebelumnya salah tempat sehingga tidak pernah benar-benar
+      // diterapkan -- itulah sebabnya beberapa berkas (mis. favicon.ico) tidak ikut
+      // ter-precache walau sudah tercantum di pattern.
       injectManifest: {
-        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024 // 50MB
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}']
+        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,json}']
       }
     })
   ],

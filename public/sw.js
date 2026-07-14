@@ -1,8 +1,22 @@
-import { precacheAndRoute } from 'workbox-precaching';
+import { precacheAndRoute, matchPrecache } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 
 // Precache static assets (Vite build assets)
 precacheAndRoute(self.__WB_MANIFEST);
+
+// Aktifkan service worker baru SEGERA, tanpa menunggu semua tab lama ditutup.
+// Tanpa ini, SW yang baru ter-install tertahan di status "waiting" (ikon roda
+// gigi/cakra di DevTools) dan tidak pernah benar-benar mengambil alih kontrol,
+// sehingga precaching/route offline yang didaftarkan di sini tidak pernah aktif.
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+// Segera ambil alih kontrol halaman yang sudah terbuka begitu SW aktif, agar
+// tidak perlu reload manual dulu supaya mode offline berfungsi.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
 
 const CACHE_NAME = 'ai-models-storage';
 
@@ -59,12 +73,17 @@ registerRoute(
   modelCacheHandler
 );
 
-// Fallback for general navigation
+// Fallback offline untuk navigasi (SPA): saat network gagal, sajikan index.html dari
+// precache. Menggunakan matchPrecache (bukan caches.match('/index.html')) karena Workbox
+// menyimpan entri precache dengan key URL persis seperti di self.__WB_MANIFEST (tanpa
+// leading slash, mis. "index.html"); caches.match('/index.html') bisa tidak menemukan
+// entri tersebut sehingga fallback offline gagal dan halaman blank/error.
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/index.html');
+      fetch(event.request).catch(async () => {
+        const cached = await matchPrecache('index.html');
+        return cached || Response.error();
       })
     );
   }
