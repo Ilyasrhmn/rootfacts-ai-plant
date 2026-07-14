@@ -47,12 +47,15 @@ async function modelCacheHandler({ request }) {
   }
 }
 
-// Register route untuk extensi model AI
+// Register route untuk berkas model AI: bobot TensorFlow.js (.bin), metadata/config
+// (.json), runtime ONNX (.wasm), dan bobot model Transformers.js (.onnx). Dengan begitu
+// deteksi maupun generasi fun fact tetap berfungsi dalam mode luring setelah sekali online.
 registerRoute(
   ({ url }) =>
     url.pathname.endsWith('.bin') ||
     url.pathname.endsWith('.json') ||
-    url.pathname.endsWith('.wasm'),
+    url.pathname.endsWith('.wasm') ||
+    url.pathname.endsWith('.onnx'),
   modelCacheHandler
 );
 

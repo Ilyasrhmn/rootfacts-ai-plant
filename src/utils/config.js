@@ -18,7 +18,9 @@ export const TONE_CONFIG = {
 export const MODEL_CONFIG = {
   detectionModel: '/model/model.json',
   detectionMetadata: '/model/metadata.json',
-  transformersModel: 'Xenova/flan-t5-small'
+  // Model instruction-tuned yang jauh lebih baik daripada flan-t5-small untuk
+  // menghasilkan fun fact yang koheren, bervariasi, dan tidak mengorupsi nama sayuran.
+  transformersModel: 'Xenova/LaMini-Flan-T5-248M'
 };
 
 export const isValidDetection = (result) => {
