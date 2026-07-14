@@ -58,26 +58,39 @@ export class DetectionService {
   }
 
   /**
-   * Melakukan prediksi dengan manajemen memori tf.tidy()
+   * Melakukan prediksi dengan manajemen memori tf.tidy().
+   *
+   * PENTING: gunakan await prediction.data() (async), BUKAN dataSync(). Pada backend WebGPU,
+   * dataSync() (pembacaan sinkron GPU->CPU) dapat mengembalikan buffer nol karena komputasi
+   * GPU belum selesai. Akibatnya Math.max(semua_nol)=0 dan indexOf(0)=0, sehingga prediksi
+   * selalu menjadi label indeks-0 ("Beetroot") dengan skor 0% dan deteksi macet berputar.
+   * data() menunggu transfer GPU->CPU selesai sehingga hasilnya benar di semua backend.
    */
   async predict(imageElement) {
     if (!this.model) return null;
 
-    return tf.tidy(() => {
+    // Operasi tensor sinkron dibungkus tf.tidy; tensor keluaran dibaca async lalu dibuang manual.
+    const prediction = tf.tidy(() => {
       const tensor = tf.browser.fromPixels(imageElement)
         .resizeBilinear([224, 224])
         .div(255.0)
         .expandDims(0);
+      return this.model.predict(tensor);
+    });
 
-      const prediction = this.model.predict(tensor);
-      const probabilities = prediction.dataSync();
-      const maxIdx = probabilities.indexOf(Math.max(...probabilities));
-
+    try {
+      const probabilities = await prediction.data();
+      let maxIdx = 0;
+      for (let i = 1; i < probabilities.length; i++) {
+        if (probabilities[i] > probabilities[maxIdx]) maxIdx = i;
+      }
       return {
         className: this.labels[maxIdx],
         score: probabilities[maxIdx]
       };
-    });
+    } finally {
+      prediction.dispose();
+    }
   }
 
   isLoaded() {
