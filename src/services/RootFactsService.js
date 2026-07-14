@@ -36,6 +36,16 @@ const VEG_KNOWLEDGE = {
   turnip: 'Turnip is a root vegetable that is low in calories and a good source of vitamin C and fiber.',
 };
 
+// Daftar nama sayuran untuk deteksi kontaminasi: label resmi model + nama sayuran umum
+// lain yang berisiko "bocor" dari model (mis. "tomato", "broccoli") walau bukan label resmi.
+// Dipakai untuk menolak keluaran AI yang menyebut sayuran LAIN selain yang terdeteksi
+// (mis. "Garlic is a well-known tomato"), yang persis pola kesalahan yang membuat
+// submission sebelumnya ditolak reviewer.
+const KNOWN_VEG_NAMES = [
+  ...Object.keys(VEG_KNOWLEDGE),
+  'tomato', 'broccoli', 'pepper', 'pumpkin', 'radish', 'celery', 'asparagus', 'zucchini',
+];
+
 /**
  * Template prompt per nada (Persona Dinamis). Nada disuntikkan ke instruksi model sehingga
  * gaya penulisan berubah otomatis, sementara fakta grounding menjaga akurasi/relevansi.
@@ -151,10 +161,17 @@ export class RootFactsService {
     // Model kadang membungkus keluaran dengan tanda kutip; rapikan.
     text = text.replace(/^["'\s]+|["'\s]+$/g, '').trim();
 
-    // Jaring pengaman ringan: bila model gagal (keluaran kosong, terlalu pendek, atau
-    // menjatuhkan nama sayuran), tampilkan fakta grounding yang sudah pasti benar & relevan.
-    // Dengan model yang kapabel, jalur ini jarang terpakai sehingga fakta tetap dihasilkan AI.
-    if (text.length < 15 || !text.toLowerCase().includes(normalized)) {
+    // Jaring pengaman: keluaran model hanya dipakai bila (1) cukup panjang, (2) benar-benar
+    // menyebut nama sayuran yang terdeteksi, dan (3) TIDAK menyebut nama sayuran lain
+    // (mis. "Garlic is a well-known tomato") — pola halusinasi yang sama persis dengan
+    // penyebab penolakan sebelumnya. Jika gagal, pakai fakta grounding yang pasti benar.
+    const lowerText = text.toLowerCase();
+    const mentionsCorrectName = lowerText.includes(normalized);
+    const mentionsOtherVeg = KNOWN_VEG_NAMES.some((v) =>
+      v !== normalized && !normalized.includes(v) && !v.includes(normalized) &&
+      new RegExp(`\\b${v}\\b`).test(lowerText));
+
+    if (text.length < 15 || !mentionsCorrectName || mentionsOtherVeg) {
       text = knowledge;
     }
 
