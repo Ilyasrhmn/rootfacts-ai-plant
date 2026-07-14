@@ -1,5 +1,8 @@
 import { precacheAndRoute, matchPrecache } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 // Precache static assets (Vite build assets)
 precacheAndRoute(self.__WB_MANIFEST);
@@ -71,6 +74,26 @@ registerRoute(
     url.pathname.endsWith('.wasm') ||
     url.pathname.endsWith('.onnx'),
   modelCacheHandler
+);
+
+// Google Fonts: index.html memuat font dari CDN eksternal (fonts.googleapis.com/
+// fonts.gstatic.com), yang tidak tercakup oleh precache (beda origin). Tanpa route ini,
+// font gagal dimuat saat offline (request merah di Network tab, walau tidak menghentikan
+// fungsi utama aplikasi). Stylesheet pakai StaleWhileRevalidate (bisa berubah), berkas
+// font pakai CacheFirst (immutable, aman disimpan lama).
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com',
+  new StaleWhileRevalidate({ cacheName: 'google-fonts-stylesheets' })
+);
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.gstatic.com',
+  new CacheFirst({
+    cacheName: 'google-fonts-webfonts',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxAgeSeconds: 60 * 60 * 24 * 365, maxEntries: 30 }),
+    ],
+  })
 );
 
 // Fallback offline untuk navigasi (SPA): saat network gagal, sajikan index.html dari
