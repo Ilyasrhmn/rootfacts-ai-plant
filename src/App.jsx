@@ -17,6 +17,7 @@ function App() {
   const consecutiveHitsRef = useRef({ count: 0, lastLabel: null });
   const isWarmingUpRef = useRef(false);
   const fpsLimitRef = useRef(300); // ms antar prediksi, dapat dikonfigurasi lewat UI (slider FPS)
+  const factRequestIdRef = useRef(0); // mencegah hasil generate ulang yang telat menimpa yang lebih baru
 
   // Inisialisasi layanan AI saat komponen dimuat
   useEffect(() => {
@@ -149,12 +150,19 @@ function App() {
   };
 
   const handleGenerateFact = async (label) => {
+    const requestId = ++factRequestIdRef.current;
     actions.setFunFactData(null);
     try {
       const fact = await state.services.generator.generateFacts(label);
-      actions.setFunFactData(fact);
+      // Abaikan hasil ini bila sudah ada permintaan generate yang lebih baru
+      // (mis. pengguna mengganti tone lagi sebelum generasi ini selesai).
+      if (requestId === factRequestIdRef.current) {
+        actions.setFunFactData(fact);
+      }
     } catch (err) {
-      actions.setFunFactData('error');
+      if (requestId === factRequestIdRef.current) {
+        actions.setFunFactData('error');
+      }
     }
   };
 
@@ -162,6 +170,13 @@ function App() {
     setCurrentTone(tone);
     if (state.services.generator) {
       state.services.generator.setTone(tone);
+    }
+
+    // Jika fun fact untuk sayuran ini sudah tampil, generate ulang langsung dengan
+    // nada yang baru dipilih. Tanpa ini, mengganti dropdown tone setelah hasil scan
+    // tampil tidak mengubah apa pun karena teks hanya dibuat sekali saat deteksi.
+    if (state.appState === 'result' && state.detectionResult) {
+      handleGenerateFact(state.detectionResult.className);
     }
   };
 
